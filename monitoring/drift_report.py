@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 
-from evidently import Report
-from evidently.presets import DataDriftPreset
+from evidently import Report, ColumnMapping
+from evidently.presets import DataDriftPreset, DataSummaryPreset
 
 REPORT_DIR = "monitoring/reports"
 REFERENCE_PATH = "data/reference_transactions.csv"
@@ -30,13 +30,20 @@ def main():
     reference = reference[MONITORING_COLUMNS].dropna()
     current = current[MONITORING_COLUMNS].dropna()
 
+    column_mapping = ColumnMapping(
+        prediction = "fraud_probability",
+        target = None
+    )
+
     report = Report([
-        DataDriftPreset(drift_share = 0.3)
+        DataDriftPreset(drift_share = 0.3),
+        DataSummaryPreset()
     ])
 
     result = report.run(
         reference_data = reference,
-        current_data = current
+        current_data = current,
+        column_mapping = column_mapping
     )
 
     result.save_html(f"{REPORT_DIR}/data_drift_report.html")
