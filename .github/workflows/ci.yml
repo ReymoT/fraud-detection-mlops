@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test-and-build:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,19 +23,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
-      - name: Check core imports
+      - name: Lint code
         run: |
-          python -c "import pandas, numpy, sklearn, xgboost, fastapi, shap, joblib"
+          ruff check src app monitoring dashboard
 
-      - name: Verify training modules import
+      - name: Run tests
         run: |
-          python -c "from src.ingest import load_data; from src.features import build_features; from src.evaluate import evaluate_model"
+          pytest tests -q
 
-      - name: Verify FastAPI app loads
+      - name: Verify FastAPI app imports
         run: |
-          python -c "from app.main import app; print('FastAPI app loaded successfully')"
+          python -c "from app.main import app; print('API loaded')"
 
       - name: Build Docker image
         run: |
           docker build -t fraud-api .
+
+      - name: Smoke test Docker container
+        run: |
+          docker run -d -p 8000:8000 --name fraud-api-test fraud-api
+          sleep 10
+          curl -f http://localhost:8000/docs
+          docker stop fraud-api-test
