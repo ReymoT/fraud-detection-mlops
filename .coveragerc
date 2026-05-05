@@ -1,0 +1,7 @@
+[run]
+omit =
+    src/config.py
+    src/train.py
+    src/score.py
+    monitoring/*
+    dashboard/*
