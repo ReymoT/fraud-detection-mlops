@@ -1,11 +1,9 @@
 import os
 import joblib
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 from xgboost import XGBClassifier
-from sklearn.metrics import average_precision_score, classification_report
 
 from src.config import DATA_PATH, MODEL_DIR, FEATURE_COLS, TOP_PERCENTILE, EXPERIMENT_NAME
 from src.ingest import load_data

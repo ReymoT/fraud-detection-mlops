@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
