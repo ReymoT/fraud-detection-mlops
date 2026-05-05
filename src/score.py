@@ -1,6 +1,5 @@
 import joblib
 import pandas as pd
-import numpy as np
 
 from src.ingest import load_data
 from src.features import build_features
