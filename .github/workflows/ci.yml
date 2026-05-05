@@ -47,8 +47,10 @@ jobs:
           sleep 10
           curl -f http://localhost:8000/docs
           docker stop fraud-api-test
-          
+
       - name: Run tests with coverage
+        env:
+          PYTHONPATH: .
         run: |
           pytest tests --cov=src --cov=app --cov-report=term-missing --cov-fail-under=70
       
