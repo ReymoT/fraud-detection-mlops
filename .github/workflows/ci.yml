@@ -47,3 +47,18 @@ jobs:
           sleep 10
           curl -f http://localhost:8000/docs
           docker stop fraud-api-test
+          
+      - name: Run tests with coverage
+        run: |
+          pytest tests --cov=src --cov=app --cov-report=term-missing --cov-fail-under=70
+      
+      - name: Security scan with Bandit
+        run: |
+          bandit -r src app monitoring -ll
+      
+      - name: Docker image vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: fraud-api
+          format: table
+          exit-code: 0
