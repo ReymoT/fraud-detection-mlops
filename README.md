@@ -1,4 +1,5 @@
 # Fraud Detection MLOps System
+![CI](https://github.com/ReymoT/fraud-detection-mlops/actions/workflows/ci.yml/badge.svg)
 
 End-to-end fraud detection system built on 1M+ transactions with a focus on real-world ML engineering.
 
@@ -20,11 +21,13 @@ Model Performance:
 - Fraud rate: ~0.5%
 
 Architecture:
+
 Training Pipeline → MLflow → Saved Model → FastAPI API → Docker → Dashboard + Monitoring
 
-Setup:
+## Setup:
 ### Clone repo
 git clone https://github.com/ReymoT/fraud-detection-mlops.git
+
 cd fraud-detection-mlops
 
 ### Run with Docker Compose
