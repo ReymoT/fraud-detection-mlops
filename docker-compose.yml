@@ -1,0 +1,20 @@
+services:
+  api:
+    build: .
+    container_name: fraud-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+
+  dashboard:
+    build: .
+    container_name: fraud-dashboard
+    command: streamlit run dashboard/app.py --server.address=0.0.0.0 --server.port=8501
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./models:/app/models
+      - ./scored_transactions.csv:/app/scored_transactions.csv
+    depends_on:
+      - api
