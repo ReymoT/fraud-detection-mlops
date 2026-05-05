@@ -1,0 +1,41 @@
+name: Fraud Detection CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check core imports
+        run: |
+          python -c "import pandas, numpy, sklearn, xgboost, fastapi, shap, joblib"
+
+      - name: Verify training modules import
+        run: |
+          python -c "from src.ingest import load_data; from src.features import build_features; from src.evaluate import evaluate_model"
+
+      - name: Verify FastAPI app loads
+        run: |
+          python -c "from app.main import app; print('FastAPI app loaded successfully')"
+
+      - name: Build Docker image
+        run: |
+          docker build -t fraud-api .
