@@ -2,6 +2,8 @@ import os
 import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
+import json
+from pathlib import Path
 
 from xgboost import XGBClassifier
 
@@ -12,6 +14,19 @@ from src.evaluate import evaluate_model
 
 import mlflow
 import mlflow.xgboost
+
+PROD_METRICS_PATH = Path(f"{MODEL_DIR}/production_metrics.json")
+
+def should_promote(candidate_metrics):
+    if not PROD_METRICS_PATH.exists():
+        return True
+
+    with open(PROD_METRICS_PATH, "r") as f:
+        prod_metrics = json.load(f)
+
+    return (
+        candidate_metrics["pr_auc"] >= prod_metrics["pr_auc"] and candidate_metrics["precision_at_k"] >= prod_metrics["precision_at_k"]
+    )
 
 def main():
     os.makedirs(MODEL_DIR, exist_ok = True)
@@ -60,14 +75,14 @@ def main():
             "scale_pos_weight": scale_pos_weight,
             "eval_metric": "aucpr",
             "tree_method": "hist",
-            "top_percentile": TOP_PERCENTILE,
         }
 
         mlflow.log_params(params)
+        mlflow.log_params("top_percentile", TOP_PERCENTILE)
 
         model = XGBClassifier(
             **params,
-            random_state=42
+            random_state = 42
         )
 
         model.fit(X_train, y_train)
@@ -76,13 +91,13 @@ def main():
             model,
             X_test,
             y_test,
-            top_percentile=TOP_PERCENTILE
+            top_percentile = TOP_PERCENTILE
         )
 
         mlflow.log_metric("pr_auc", metrics["pr_auc"])
         mlflow.log_metric("precision_at_0_5_percent", metrics["precision_at_k"])
         mlflow.log_metric("threshold", metrics["threshold"])
-        mlflow.log_metric("recall_at_kt", metrics["recall_at_k"])
+        mlflow.log_metric("recall_at_0_5_percent", metrics["recall_at_k"])
         mlflow.log_metric("baseline_fraud_rate", metrics["baseline_fraud_rate"])
 
         print("PR-AUC:", metrics["pr_auc"])
@@ -90,24 +105,47 @@ def main():
         print("Precision at 0.5%:", metrics["precision_at_k"])
         print(metrics["classification_report"])
 
-        joblib.dump(model, f"{MODEL_DIR}/fraud_model.pkl")
-        joblib.dump(freq.to_dict(), f"{MODEL_DIR}/merchant_freq.pkl")
-        joblib.dump(list(X_train.columns), f"{MODEL_DIR}/model_columns.pkl")
-        joblib.dump(metrics["threshold"], f"{MODEL_DIR}/threshold.pkl")
+        if should_promote(metrics):
+            print("Candidate model promoted to production.")
 
-        mlflow.xgboost.log_model(model, name = "xgboost_fraud_model")
-        mlflow.register_model(
-            "runs:/{}/xgboost_fraud_model".format(mlflow.active_run().info.run_id),
-            "fraud_model"
-        )
+            joblib.dump(model, f"{MODEL_DIR}/fraud_model.pkl")
+            joblib.dump(freq.to_dict(), f"{MODEL_DIR}/merchant_freq.pkl")
+            joblib.dump(list(X_train.columns), f"{MODEL_DIR}/model_columns.pkl")
+            joblib.dump(metrics["threshold"], f"{MODEL_DIR}/threshold.pkl")
 
-        mlflow.log_artifact(f"{MODEL_DIR}/merchant_freq.pkl")
-        mlflow.log_artifact(f"{MODEL_DIR}/model_columns.pkl")
-        mlflow.log_artifact(f"{MODEL_DIR}/threshold.pkl")
+            mlflow.log_artifact(f"{MODEL_DIR}/merchant_freq.pkl")
+            mlflow.log_artifact(f"{MODEL_DIR}/model_columns.pkl")
+            mlflow.log_artifact(f"{MODEL_DIR}/threshold.pkl")
+
+            mlflow.xgboost.log_model(model, name = "xgboost_fraud_model")
+            mlflow.register_model(
+                "runs:/{}/xgboost_fraud_model".format(mlflow.active_run().info.run_id),
+                "fraud_model"
+            )
+
+            with open(PROD_METRICS_PATH, "w") as f:
+                json.dump(
+                    {
+                        "pr_auc": float(metrics["pr_auc"]),
+                        "precision_at_k": float(metrics["precision_at_k"]),
+                        "threshold": float(metrics["threshold"]),
+                    },
+                    f,
+                    indent = 2,
+                )
+
+            mlflow.log_param("promoted", True)
+
+        else:
+            print("Candidate model NOT promoted.")
+            mlflow.log_param("promoted", False)
+
+
         with open("report.txt", "w") as f:
             f.write(metrics["classification_report"])
 
         mlflow.log_artifact("report.txt")
+        
 
         importances = model.feature_importances_
         features = X_train.columns

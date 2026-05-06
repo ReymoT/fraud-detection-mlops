@@ -2,7 +2,7 @@ import numpy as np
 from sklearn.metrics import average_precision_score, classification_report
 
 
-def evaluate_model(model, X_test, y_test, top_percentile=99.5):
+def evaluate_model(model, X_test, y_test, top_percentile = 99.5):
     """
     Evaluate fraud model using PR-AUC and top-k threshold metrics.
     """
@@ -22,17 +22,17 @@ def evaluate_model(model, X_test, y_test, top_percentile=99.5):
     report = classification_report(
         y_test,
         top_k,
-        digits=4,
-        output_dict=False
+        digits = 4,
+        output_dict = False
     )
 
     metrics = {
         "pr_auc": pr_auc,
         "threshold": float(threshold),
         "precision_at_k": precision_at_k,
-        "classification_report": report,
         "recall_at_k": recall_at_k,
-        "baseline_fraud_rate": baseline_fraud_rate
+        "baseline_fraud_rate": baseline_fraud_rate,
+        "classification_report": report
     }
 
     return metrics, y_scores, top_k

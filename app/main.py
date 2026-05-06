@@ -3,8 +3,11 @@ import joblib
 import pandas as pd
 import numpy as np
 import shap
+import os
+from datetime import datetime, timezone
 
 app = FastAPI()
+LOG_PATH = "logs/predictions.csv"
 
 model = joblib.load("models/fraud_model.pkl")
 merchant_freq = joblib.load("models/merchant_freq.pkl")
@@ -13,12 +16,29 @@ threshold = joblib.load("models/threshold.pkl")
 
 explainer = shap.TreeExplainer(model)
 
+def log_prediction(transaction, response):
+    os.makedirs("logs", exist_ok = True)
+
+    row = {
+        "logged_at": datetime.now(timezone.utc).isoformat(),
+        **transaction,
+        "fraud_probability": response["fraud_probability"],
+        "threshold": response["threshold"],
+        "risk_level": response["risk"],
+        "flag": response["flag"]
+    }
+
+    df = pd.DataFrame([row])
+
+    file_exists = os.path.exists(LOG_PATH)
+    df.to_csv(LOG_PATH, mode = "a", header = (not file_exists), index = False)
+
 @app.get("/")
 def home():
     return {"message": "Fraud Detection API running"}
 
 @app.post("/predict")
-def predict(transaction: dict):
+def predict(transaction):
     df = pd.DataFrame([transaction])
 
     df["amt_log"] = np.log1p(df["amt"])
@@ -52,12 +72,16 @@ def predict(transaction: dict):
         reverse = True
     )[:3]
 
-    return {
+    response = {
         "fraud_probability": float(score),
         "threshold": float(threshold),
         "risk_level": risk,
-        "flag": flag,
+        "flag": int(score >= threshold),
         "top_reasons": [
             {"feature": f, "impact": float(v)} for f, v in top_features
         ]
     }
+
+    log_prediction(transaction, response)
+
+    return response

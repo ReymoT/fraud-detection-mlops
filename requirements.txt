@@ -11,3 +11,5 @@ mlflow
 streamlit
 plotly
 evidently
+schedule
+scipy
