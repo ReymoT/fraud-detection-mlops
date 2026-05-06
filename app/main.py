@@ -76,7 +76,7 @@ def predict(transaction):
         "fraud_probability": float(score),
         "threshold": float(threshold),
         "risk_level": risk,
-        "flag": int(score >= threshold),
+        "flag": flag,
         "top_reasons": [
             {"feature": f, "impact": float(v)} for f, v in top_features
         ]
