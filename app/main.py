@@ -38,9 +38,8 @@ def home():
     return {"message": "Fraud Detection API running"}
 
 @app.post("/predict")
-def predict(transaction):
-    transaction_dict = transaction.model_dump()
-    df = pd.DataFrame([transaction_dict])
+def predict(transaction: dict):
+    df = pd.DataFrame([transaction])
 
     df["amt_log"] = np.log1p(df["amt"])
     df["merchant_freq"] = df["merchant"].map(merchant_freq).fillna(0)
@@ -83,6 +82,6 @@ def predict(transaction):
         ]
     }
 
-    log_prediction(transaction_dict, response)
+    log_prediction(transaction, response)
 
     return response
