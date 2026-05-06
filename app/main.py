@@ -24,7 +24,7 @@ def log_prediction(transaction, response):
         **transaction,
         "fraud_probability": response["fraud_probability"],
         "threshold": response["threshold"],
-        "risk_level": response["risk"],
+        "risk_level": response["risk_level"],
         "flag": response["flag"]
     }
 
@@ -39,7 +39,8 @@ def home():
 
 @app.post("/predict")
 def predict(transaction):
-    df = pd.DataFrame([transaction])
+    transaction_dict = transaction.model_dump()
+    df = pd.DataFrame([transaction_dict])
 
     df["amt_log"] = np.log1p(df["amt"])
     df["merchant_freq"] = df["merchant"].map(merchant_freq).fillna(0)
@@ -55,11 +56,11 @@ def predict(transaction):
     flag = int(score >= threshold)
 
     if score >= threshold:
-        risk = "HIGH"
+        risk_level = "HIGH"
     elif score >= 0.5:
-        risk = "MEDIUM"
+        risk_level = "MEDIUM"
     else:
-        risk = "LOW"
+        risk_level = "LOW"
 
     shap_values = explainer.shap_values(df)
 
@@ -75,13 +76,13 @@ def predict(transaction):
     response = {
         "fraud_probability": float(score),
         "threshold": float(threshold),
-        "risk_level": risk,
+        "risk_level": risk_level,
         "flag": flag,
         "top_reasons": [
             {"feature": f, "impact": float(v)} for f, v in top_features
         ]
     }
 
-    log_prediction(transaction, response)
+    log_prediction(transaction_dict, response)
 
     return response
