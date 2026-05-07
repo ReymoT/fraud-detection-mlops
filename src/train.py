@@ -78,7 +78,7 @@ def main():
         }
 
         mlflow.log_params(params)
-        mlflow.log_params("top_percentile", TOP_PERCENTILE)
+        mlflow.log_param("top_percentile", TOP_PERCENTILE)
 
         model = XGBClassifier(
             **params,

@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-from evidently import Report, ColumnMapping
+from evidently import Report
 from evidently.presets import DataDriftPreset, DataSummaryPreset
 from scipy.stats import wasserstein_distance
 
@@ -63,11 +63,6 @@ def main():
 
     print("Drifted columns:", drifted_cols)
 
-    column_mapping = ColumnMapping(
-        prediction = "fraud_probability",
-        target = None
-    )
-
     report = Report([
         DataDriftPreset(drift_share = 0.3),
         DataSummaryPreset()
@@ -75,8 +70,7 @@ def main():
 
     result = report.run(
         reference_data = reference,
-        current_data = current,
-        column_mapping = column_mapping
+        current_data = current
     )
 
     result.save_html(f"{REPORT_DIR}/data_drift_report.html")

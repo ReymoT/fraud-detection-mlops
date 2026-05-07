@@ -10,9 +10,7 @@ def run_monitoring():
     print("Running drift monitoring...")
     subprocess.run(["python", "monitoring/drift_report.py"])
 
-# FOR PROD RUN:
-#schedule.every(1).hours.do(run_monitoring) 
-schedule.every(1).minutes.do(run_monitoring) # For demo purposes
+schedule.every(1).hours.do(run_monitoring) 
 
 while True:
     schedule.run_pending()
