@@ -1,12 +1,46 @@
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
 venv/
-.env
+.env/
+.venv/
 
 mlruns/
+mlflow.db
+*.db
+
+models/*.pkl
+models/*.joblib
+models/*.json
+
+logs/
+airflow_logs/
+
 monitoring/reports/
 
-data/
+airflow_home/
+
+.streamlit/
+
+.pytest_cache/
+.coverage
+htmlcov/
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
+
+# Docker
+*.log
+
+# Data files
+data/*.csv
 *.csv
-mlflow.db
+
+tmp/
+temp/

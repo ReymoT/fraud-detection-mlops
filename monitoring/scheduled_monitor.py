@@ -4,6 +4,8 @@ import subprocess
 
 '''
 Script to schedule monitoring every hour
+
+REPLACED BY AIRFLOW
 '''
 
 def run_monitoring():

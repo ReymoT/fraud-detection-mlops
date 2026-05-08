@@ -7,3 +7,8 @@ mlruns/
 data/
 *.csv
 monitoring/reports/
+
+airflow_logs/
+dags/
+plugins/
+logs/

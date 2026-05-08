@@ -1,18 +1,21 @@
 # Fraud Detection MLOps System
 ![CI](https://github.com/ReymoT/fraud-detection-mlops/actions/workflows/ci.yml/badge.svg)
 
-End-to-end fraud detection system built on 1M+ transactions with a focus on real-world ML engineering.
+End-to-end fraud detection MLOps system built on 1M+ credit card transactions. The project includes simulated data stream ingestion, model training,
+experiment tracking, explainable inference, monitoring, orchestration, and containerized deployment.
+
 
 Includes:
 - Feature engineering pipeline
 - XGBoost model (PR-AUC ~0.86)
 - FastAPI inference service
 - SHAP explanations
+- Apache Airflow DAG for monitoring and retraining
 - MLflow experiment tracking
 - Evidently AI drift monitoring
 - Streamlit dashboard
 - Docker + Docker Compose deployment
-- GitHub Actions CI/CD
+- GitHub Actions CI/CD with tests/coverage, Docker build, security and vulnerability checks
 
 Model Performance:
 - PR-AUC: ~0.86
@@ -20,9 +23,6 @@ Model Performance:
 - Recall @ top 0.5%: ~0.76
 - Fraud rate: ~0.5%
 
-Architecture:
-
-Training Pipeline → MLflow → Saved Model → FastAPI API → Docker → Dashboard + Monitoring
 
 ## Setup:
 ### Clone repo
@@ -35,6 +35,7 @@ docker compose up --build
 
 API: http://localhost:8000/docs  
 Dashboard: http://localhost:8501
+Airflow: http://localhost:8080
 
 Example API Request JSON:
 ```
@@ -68,6 +69,7 @@ Example API Response:
 }
 ```
 
+
 Interactive dashboard showing:
 - Fraud score distribution
 - Flagged transactions
@@ -78,3 +80,58 @@ Evidently AI used for:
 - Data drift detection
 - Prediction drift tracking
 - Feature distribution monitoring
+
+## System Architecture
+
+```
+Simulated transaction stream
+        ↓
+FastAPI inference service
+        ↓
+Prediction logs
+        ↓
+Airflow scheduled monitoring
+        ↓
+Evidently drift report
+        ↓
+Conditional retraining
+        ↓
+MLflow experiment tracking
+        ↓
+Model promotion gate
+```
+
+## Simulated Data Stream
+Run:
+```
+python streaming/producer.py
+```
+This sends transaction events to the FastAPI inference service and logs predictions to:
+```
+logs/predictions.csv
+```
+
+## Monitoring and Retraining
+
+Airflow runs the DAG:
+```
+fraud_monitoring_and_retraining
+```
+The DAG:
+1. Runs Evidently drift monitoring
+2. Checks drift status
+3. Triggers retraining if drift is detected
+4. Logs candidate model metrics to MLflow
+5. Promotes the model only if it improves over production metrics
+
+
+## Notes
+The current Airflow setup uses SQLite and SequentialExecutor for local development. A production deployment would use:
+
+PostgreSQL metadata database
+CeleryExecutor or KubernetesExecutor
+Redis/RabbitMQ broker if using Celery
+Cloud object storage for artifacts
+Secrets manager
+Container registry
+Cloud deployment on ECS, SageMaker, or Kubernetes
