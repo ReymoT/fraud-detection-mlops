@@ -129,9 +129,15 @@ The DAG:
 The current Airflow setup uses SQLite and SequentialExecutor for local development. A production deployment would use:
 
 PostgreSQL metadata database
+
 CeleryExecutor or KubernetesExecutor
+
 Redis/RabbitMQ broker if using Celery
+
 Cloud object storage for artifacts
+
 Secrets manager
+
 Container registry
+
 Cloud deployment on ECS, SageMaker, or Kubernetes

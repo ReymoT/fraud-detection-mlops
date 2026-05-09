@@ -13,3 +13,4 @@ plotly
 evidently
 schedule
 scipy
+kafka-python

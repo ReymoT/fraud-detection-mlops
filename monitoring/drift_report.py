@@ -6,7 +6,7 @@ from evidently.presets import DataDriftPreset, DataSummaryPreset
 from scipy.stats import wasserstein_distance
 
 REPORT_DIR = "monitoring/reports"
-REFERENCE_PATH = "/opt/airflow/data/reference_predictions.csv"
+REFERENCE_PATH = "/opt/airflow/data/reference_transactions.csv"
 CURRENT_PATH = "/opt/airflow/project_logs/predictions.csv"
 
 MONITORING_COLUMNS = [

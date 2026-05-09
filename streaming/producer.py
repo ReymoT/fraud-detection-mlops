@@ -1,17 +1,19 @@
+import json
 import time
 import pandas as pd
-import requests
+from kafka import KafkaProducer
 
-'''
-Script to simulate a data stream
-'''
+TOPIC = "fraud-transactions"
 
-API_URL = "http://127.0.0.1:8000/predict"
-DATA_PATH = "data/fraudTrain.csv"
+producer = KafkaProducer(
+    bootstrap_servers = "localhost:9092",
+    value_serializer = lambda v: json.dumps(v).encode("utf-8")
+)
 
-df = pd.read_csv(DATA_PATH).sample(1000, random_state = 42) # random state for reproducibility
+df = pd.read_csv("data/fraudTrain.csv").sample(100, random_state = 42)
 
 for _, row in df.iterrows():
+
     payload = {
         "amt": float(row["amt"]),
         "lat": float(row["lat"]),
@@ -27,7 +29,10 @@ for _, row in df.iterrows():
         "dob": row["dob"],
     }
 
-    response = requests.post(API_URL, json = payload)
-    print(response.json())
+    producer.send(TOPIC, value = payload)
+
+    print("Sent: ", payload)
 
     time.sleep(1)
+
+producer.flush()

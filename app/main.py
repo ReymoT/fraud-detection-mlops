@@ -16,6 +16,19 @@ threshold = joblib.load("models/threshold.pkl")
 
 explainer = shap.TreeExplainer(model)
 
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        np.sin(dlat / 2) ** 2
+        + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    )
+
+    return 2 * R * np.arcsin(np.sqrt(a))
+
 def log_prediction(transaction, response):
     os.makedirs("logs", exist_ok = True)
 
@@ -39,7 +52,25 @@ def home():
 
 @app.post("/predict")
 def predict(transaction: dict):
-    df = pd.DataFrame([transaction])
+    raw_df = pd.DataFrame([transaction])
+
+    raw_df["trans_date_trans_time"] = pd.to_datetime(raw_df["trans_date_trans_time"])
+    raw_df["dob"] = pd.to_datetime(raw_df["dob"])
+
+    raw_df["trans_hour"] = raw_df["trans_date_trans_time"].dt.hour
+    raw_df["trans_dayofweek"] = raw_df["trans_date_trans_time"].dt.dayofweek
+    raw_df["trans_month"] = raw_df["trans_date_trans_time"].dt.month
+    raw_df["age"] = (raw_df["trans_date_trans_time"] - raw_df["dob"]).dt.days / 365.25
+    raw_df["is_night"] = (raw_df["trans_hour"] < 6).astype("int8")
+
+    raw_df["distance"] = haversine(
+        raw_df["lat"],
+        raw_df["long"],
+        raw_df["merch_lat"],
+        raw_df["merch_long"],
+    )
+
+    df = raw_df.copy()
 
     df["amt_log"] = np.log1p(df["amt"])
     df["merchant_freq"] = df["merchant"].map(merchant_freq).fillna(0)
@@ -82,6 +113,6 @@ def predict(transaction: dict):
         ]
     }
 
-    log_prediction(transaction, response)
+    log_prediction(raw_df.iloc[0].to_dict(), response)
 
     return response
