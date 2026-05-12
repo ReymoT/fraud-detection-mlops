@@ -101,6 +101,79 @@ MLflow experiment tracking
 Model promotion gate
 ```
 
+## Inference Performance Layer
+The API supports two inference modes:
+Direct Inference
+```
+client request
+    ↓
+FastAPI endpoint
+    ↓
+model.predict_proba(single request)
+    ↓
+response
+```
+
+Dynamic Batched Inference
+```
+client request
+    ↓
+async request queue
+    ↓
+dynamic batcher
+    ↓
+model.predict_proba(batch)
+    ↓
+future resolved back to request
+```
+
+The batching engine groups requests arriving within a short timeout window into a single model inference call, reducing per request overhead and improving throughput under concurrent load.
+- Async request queue
+- Dynamic batching
+- Configurable batch size and timeout
+- Futures-based response resolution
+- Runtime metrics endpoint
+- Concurrent benchmarking
+- p50/p95/p99 latency tracking
+
+## Benchmarking results
+
+| Endpoint          | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) |
+| ----------------- | -----------------: | -------: | -------: | -------: |
+| /predict_direct |              93.45 |    477.4 |    538.7 |    562.6 |
+| /predict        |             164.26 |    269.2 |    329.3 |    353.4 |
+
+Dynamic batching achieved:
+
+- ~76% higher throughput
+- ~44% lower median latency
+- Significantly reduced tail latency (p95/p99)
+- Lower total benchmark runtime under concurrent load
+
+## Metrics Endpoint
+The inference engine exposes runtime metrics on the `/metrics` endpoint
+
+Example response:
+```
+{
+  "queue_depth": 0,
+  "total_requests": 10000,
+  "total_batches": 228,
+  "avg_batch_size": 43.8,
+  "max_batch_size": 64,
+  "batch_timeout_ms": 10
+}
+```
+
+Tracked metrics include:
+
+- Current load
+- Total inference requests processed
+- Total batches executed
+- Average batch size
+- Upper limit on requests per inference call
+- Batch timeout in ms
+
 ## Simulated Data Stream
 Run:
 ```
@@ -124,6 +197,17 @@ The DAG:
 4. Logs candidate model metrics to MLflow
 5. Promotes the model only if it improves over production metrics
 
+## Project structure
+fraud-detection-mlops/
+│
+├── app/                  # FastAPI inference service
+├── dashboard/            # Streamlit monitoring dashboard
+├── dags/                 # Airflow DAGs
+├── monitoring/           # Evidently drift reports
+├── models/               # Trained model artifacts
+├── benchmarks/           # Load testing + inference benchmarks
+├── tests/                # Unit/integration tests
+└── streaming/            # Simulated transaction stream
 
 ## Notes
 The current Airflow setup uses SQLite and SequentialExecutor for local development. A production deployment would use:
