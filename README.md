@@ -201,13 +201,13 @@ The DAG:
 ```
 fraud-detection-mlops/
 │
-├── app/                  # FastAPI inference service
+├── app/                  # FastAPI inference service, inference engine
 ├── dashboard/            # Streamlit monitoring dashboard
 ├── dags/                 # Airflow DAGs
 ├── monitoring/           # Evidently drift reports
 ├── models/               # Trained model artifacts
 ├── benchmarks/           # Load testing + inference benchmarks
-├── tests/                # Unit/integration tests
+├── tests/                # Integration tests
 └── streaming/            # Simulated transaction stream
 ```
 
