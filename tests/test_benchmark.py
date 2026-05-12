@@ -1,7 +1,4 @@
-import pytest
-
 from benchmarks.benchmark_api import print_results
-
 
 def test_print_results_runs_without_error(capsys):
     results = {
