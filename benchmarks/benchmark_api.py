@@ -91,16 +91,17 @@ def print_results(results):
             print(f"{key}: {value:.2f}")
         else:
             print(f"{key}: {value}")
-    
+
+def save_results(results):
     os.makedirs("benchmarks/results", exist_ok = True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     filename = (
         f"benchmarks/results/"
-        f"{args.endpoint.replace('/', '')}_"
-        f"{args.requests}_"
-        f"{args.concurrency}_"
+        f"{results['endpoint'].replace('/', '')}_"
+        f"{results['requests']}_"
+        f"{results['concurrency']}_"
         f"{timestamp}.json"
     )
 
@@ -108,7 +109,6 @@ def print_results(results):
         json.dump(results, f, indent = 2)
 
     print(f"\nSaved benchmark to: {filename}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -128,3 +128,4 @@ if __name__ == "__main__":
     )
 
     print_results(results)
+    save_results(results)
