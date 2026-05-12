@@ -198,6 +198,7 @@ The DAG:
 5. Promotes the model only if it improves over production metrics
 
 ## Project structure
+```
 fraud-detection-mlops/
 │
 ├── app/                  # FastAPI inference service
@@ -208,6 +209,7 @@ fraud-detection-mlops/
 ├── benchmarks/           # Load testing + inference benchmarks
 ├── tests/                # Unit/integration tests
 └── streaming/            # Simulated transaction stream
+```
 
 ## Notes
 The current Airflow setup uses SQLite and SequentialExecutor for local development. A production deployment would use:
