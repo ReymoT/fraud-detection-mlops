@@ -6,7 +6,6 @@ import shap
 import os
 from datetime import datetime, timezone
 from pydantic import BaseModel
-from contextlib import asynccontextmanager
 from app.inference_engine import DynamicBatcher
 from contextlib import asynccontextmanager
 
