@@ -35,17 +35,32 @@ async def send_request(client, url, latencies):
     latencies.append((end - start) * 1000)
 
 
-async def run_benchmark(endpoint, requests, concurrency):
+async def run_benchmark(endpoint, requests, concurrency, warmup):
     url = f"http://127.0.0.1:8000{endpoint}"
 
     latencies = []
 
     limits = httpx.Limits(
         max_connections = concurrency,
-        max_keepalive_connections = concurrency,
+        max_keepalive_connections = concurrency
     )
 
     async with httpx.AsyncClient(timeout = 30, limits = limits) as client:
+        # Warmup phase
+        warmup_latencies = []
+
+        for i in range(0, warmup, concurrency):
+            batch_size = min(concurrency, warmup - i)
+
+            tasks = [
+                send_request(client, url, warmup_latencies) for _ in range(batch_size)
+            ]
+
+            await asyncio.gather(*tasks)
+
+        # Measured phase
+        latencies = []
+
         start = time.perf_counter()
 
         for i in range(0, requests, concurrency):
@@ -56,7 +71,7 @@ async def run_benchmark(endpoint, requests, concurrency):
             ]
 
             await asyncio.gather(*tasks)
-
+            
         end = time.perf_counter()
 
     total_time = end - start
@@ -78,6 +93,7 @@ async def run_benchmark(endpoint, requests, concurrency):
         "p99_ms": percentile(99),
         "avg_ms": statistics.mean(latencies),
         "total_time_sec": total_time,
+        "warmup_requests": warmup
     }
 
     return results
@@ -116,6 +132,7 @@ if __name__ == "__main__":
     parser.add_argument("--endpoint", required = True)
     parser.add_argument("--requests", type = int, default = 1000)
     parser.add_argument("--concurrency", type = int, default = 100)
+    parser.add_argument("--warmup", type = int, default = 100)
 
     args = parser.parse_args()
 
@@ -124,6 +141,7 @@ if __name__ == "__main__":
             endpoint = args.endpoint,
             requests = args.requests,
             concurrency = args.concurrency,
+            warmup = args.warmup
         )
     )
 

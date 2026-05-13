@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 from app.inference_engine import DynamicBatcher
 from contextlib import asynccontextmanager
+from fastapi import HTTPException
+import asyncio
 
 class Transaction(BaseModel):
     amt: float
@@ -32,10 +34,15 @@ threshold = joblib.load("models/threshold.pkl")
 
 explainer = shap.TreeExplainer(model)
 
+BATCH_TIMEOUT_MS = int(os.getenv("BATCH_TIMEOUT_MS", "2"))
+MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "128"))
+MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "1000"))
+
 batcher = DynamicBatcher(
     model = model,
-    max_batch_size = 128,
-    batch_timeout_ms = 2
+    max_batch_size = MAX_BATCH_SIZE,
+    batch_timeout_ms = BATCH_TIMEOUT_MS,
+    max_queue_size = MAX_QUEUE_SIZE
 )
 
 @asynccontextmanager
@@ -167,7 +174,24 @@ async def predict(transaction: Transaction, explain: bool = False, log: bool = F
 
     raw_df, df = prepare_features(transaction_dict)
 
-    score = await batcher.predict(df)
+    try:
+        score = await asyncio.wait_for(
+            batcher.predict(df),
+            timeout = 5
+        )
+
+    except RuntimeError:
+        raise HTTPException(
+            status_code = 503,
+            detail = "Inference queue is full"
+        )
+
+    except asyncio.TimeoutError:
+        batcher.record_timeout()
+        raise HTTPException(
+            status_code = 504,
+            detail = "Inference request timed out"
+        )
 
     response = build_response(score, df, include_explanations = explain)
 

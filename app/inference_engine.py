@@ -17,16 +17,21 @@ class DynamicBatcher:
         model,
         max_batch_size: int = 64,
         batch_timeout_ms: int = 10,
+        max_queue_size: int = 1000
     ):
         self.model = model
         self.max_batch_size = max_batch_size
         self.batch_timeout_ms = batch_timeout_ms
-        self.queue = asyncio.Queue()
+        self.max_queue_size = max_queue_size
+        self.queue = asyncio.Queue(maxsize = max_queue_size)
         self.running = False
 
         self.total_requests = 0
         self.total_batches = 0
         self.total_batch_size = 0
+
+        self.rejected_requests = 0
+        self.timed_out_requests = 0
 
     async def start(self): # start the engine
         if not self.running:
@@ -34,6 +39,10 @@ class DynamicBatcher:
             asyncio.create_task(self._batch_loop()) # runs independently
 
     async def predict(self, features: pd.DataFrame):
+        if self.queue.full():
+            self.rejected_requests += 1
+            raise RuntimeError("Inference queue is full")
+        
         loop = asyncio.get_running_loop() # get the running event loop
         future = loop.create_future()
 
@@ -47,6 +56,9 @@ class DynamicBatcher:
         self.total_requests += 1
 
         return await future
+    
+    def record_timeout(self):
+        self.timed_out_requests += 1
 
     async def _batch_loop(self):
         while self.running:
@@ -83,11 +95,13 @@ class DynamicBatcher:
                 self.total_batch_size += len(batch)
 
                 for req, score in zip(batch, scores):
-                    req.future.set_result(float(score)) # set future as the predicted score
+                    if not req.future.cancelled(): # thread safety
+                        req.future.set_result(float(score)) # set future as the predicted score
 
             except Exception as e:
-                for req in batch:
-                    req.future.set_exception(e)
+                if not req.future.cancelled():
+                    for req in batch:
+                        req.future.set_exception(e)
 
     def metrics(self):
         avg_batch_size = (
@@ -98,9 +112,12 @@ class DynamicBatcher:
 
         return {
             "queue_depth": self.queue.qsize(),
+            "max_queue_size": self.max_queue_size,
             "total_requests": self.total_requests,
             "total_batches": self.total_batches,
             "avg_batch_size": avg_batch_size,
+            "rejected_requests": self.rejected_requests,
+            "timed_out_requests": self.timed_out_requests,
             "max_batch_size": self.max_batch_size,
-            "batch_timeout_ms": self.batch_timeout_ms,
+            "batch_timeout_ms": self.batch_timeout_ms
         }
