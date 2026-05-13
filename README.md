@@ -2,13 +2,15 @@
 ![CI](https://github.com/ReymoT/fraud-detection-mlops/actions/workflows/ci.yml/badge.svg)
 
 End-to-end fraud detection MLOps system built on 1M+ credit card transactions. The project includes simulated data stream ingestion, model training,
-experiment tracking, explainable inference, monitoring, orchestration, and containerized deployment.
+experiment tracking, explainable inference, custom high-throughput inference engine with dynamic batching, backpressure handling and thread safety, benchmarking, monitoring, orchestration, and containerized deployment.
 
 
 Includes:
 - Feature engineering pipeline
 - XGBoost model (PR-AUC ~0.86)
 - FastAPI inference service
+- Custom asynchronous inference engine with dynamic batching
+- Performance benchmarking
 - SHAP explanations
 - Apache Airflow DAG for monitoring and retraining
 - MLflow experiment tracking
@@ -103,6 +105,7 @@ Model promotion gate
 
 ## Inference Performance Layer
 The API supports two inference modes:
+
 Direct Inference
 ```
 client request
@@ -128,6 +131,7 @@ future resolved back to request
 ```
 
 The batching engine groups requests arriving within a short timeout window into a single model inference call, reducing per request overhead and improving throughput under concurrent load.
+
 - Async request queue
 - Dynamic batching
 - Configurable batch size and timeout
@@ -135,6 +139,19 @@ The batching engine groups requests arriving within a short timeout window into 
 - Runtime metrics endpoint
 - Concurrent benchmarking
 - p50/p95/p99 latency tracking
+
+### Runtime Stability Features
+
+The inference runtime includes several production style safeguards:
+
+- Bounded async request queue for backpressure handling
+- HTTP 503 rejection when the inference queue is full
+- Request timeout handling with HTTP 504 responses
+- Future cancellation safety checks
+- Runtime queue depth and batching metrics
+- Configurable maximum queue size
+
+The bounded queue prevents unbounded latency and memory growth under overload conditions.
 
 ## Benchmarking results
 
