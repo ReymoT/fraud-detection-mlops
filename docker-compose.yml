@@ -1,3 +1,21 @@
+x-airflow-common-env: &airflow-common-env
+  AIRFLOW_HOME: /opt/airflow
+  AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+  AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-postgres:5432/airflow
+  AIRFLOW__CELERY__BROKER_URL: redis://airflow-redis:6379/0
+  AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@airflow-postgres:5432/airflow
+
+x-airflow-common-volumes: &airflow-common-volumes
+  - ./dags:/opt/airflow/dags
+  - ./airflow_logs:/opt/airflow/logs
+  - ./monitoring:/opt/airflow/monitoring
+  - ./src:/opt/airflow/src
+  - ./models:/opt/airflow/models
+  - ./data:/opt/airflow/data
+  - ./logs:/opt/airflow/project_logs
+  - ./requirements-airflow.txt:/opt/airflow/requirements-airflow.txt
+
 services:
   api:
     build: .
@@ -24,52 +42,45 @@ services:
     depends_on:
       - api
   
+  airflow-postgres:
+    image: postgres:15
+    container_name: fraud-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+
+  airflow-redis:
+    image: redis:7
+    container_name: fraud-airflow-redis
+
   airflow-init:
     image: apache/airflow:2.10.5
     container_name: fraud-airflow-init
+    depends_on:
+      - airflow-postgres
+      - airflow-redis
     environment:
-      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
-      AIRFLOW_HOME: /opt/airflow
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./airflow_logs:/opt/airflow/logs
-      - ./monitoring:/opt/airflow/monitoring
-      - ./src:/opt/airflow/src
-      - ./models:/opt/airflow/models
-      - ./data:/opt/airflow/data
-      - ./logs:/opt/airflow/project_logs
-      - ./requirements-airflow.txt:/opt/airflow/requirements-airflow.txt
-      - ./airflow_home:/opt/airflow
+      <<: *airflow-common-env
+    volumes: *airflow-common-volumes
     command: >
       bash -c "
       pip install -r /opt/airflow/requirements-airflow.txt &&
-      airflow db init &&
-      airflow users create --username admin --password admin --firstname Reimo --lastname Tamme --role Admin --email admin@example.com || true
+      airflow db migrate &&
+      airflow users create --username admin --password admin --firstname Reimo --lastname Tamme --role Admin --email tamme.reimo@gmail.com || true
       "
 
   airflow-webserver:
     image: apache/airflow:2.10.5
     container_name: fraud-airflow-webserver
     depends_on:
-        airflow-init:
-          condition: service_completed_successfully
+      airflow-init:
+        condition: service_completed_successfully
     environment:
-      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
-      AIRFLOW_HOME: /opt/airflow
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./airflow_logs:/opt/airflow/logs
-      - ./monitoring:/opt/airflow/monitoring
-      - ./src:/opt/airflow/src
-      - ./models:/opt/airflow/models
-      - ./data:/opt/airflow/data
-      - ./logs:/opt/airflow/project_logs
-      - ./requirements-airflow.txt:/opt/airflow/requirements-airflow.txt
-      - ./airflow_home:/opt/airflow
+       <<: *airflow-common-env
+    volumes: *airflow-common-volumes
     ports:
       - "8080:8080"
     command: >
@@ -85,25 +96,29 @@ services:
       airflow-init:
         condition: service_completed_successfully
     environment:
-      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
-      AIRFLOW_HOME: /opt/airflow
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./airflow_logs:/opt/airflow/logs
-      - ./monitoring:/opt/airflow/monitoring
-      - ./src:/opt/airflow/src
-      - ./models:/opt/airflow/models
-      - ./data:/opt/airflow/data
-      - ./logs:/opt/airflow/project_logs
-      - ./requirements-airflow.txt:/opt/airflow/requirements-airflow.txt
-      - ./airflow_home:/opt/airflow
+      <<: *airflow-common-env
+    volumes: *airflow-common-volumes
     command: >
       bash -c "
       pip install -r /opt/airflow/requirements-airflow.txt &&
       airflow scheduler
       "
+  
+  airflow-worker:
+    image: apache/airflow:2.10.5
+    container_name: fraud-airflow-worker
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *airflow-common-env
+    volumes: *airflow-common-volumes
+    command: >
+      bash -c "
+      pip install -r /opt/airflow/requirements-airflow.txt &&
+      airflow celery worker -H fraud-worker@%h
+      "
+    
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -127,3 +142,6 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+volumes:
+  airflow_postgres_data:

@@ -6,3 +6,5 @@ joblib
 mlflow
 evidently
 scipy
+psycopg2-binary
+apache-airflow-providers-celery
