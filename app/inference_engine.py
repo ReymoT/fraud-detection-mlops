@@ -1,7 +1,6 @@
 import asyncio
 import time
 from dataclasses import dataclass
-import pandas as pd
 
 
 @dataclass
