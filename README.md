@@ -155,17 +155,24 @@ The bounded queue prevents unbounded latency and memory growth under overload co
 
 ## Benchmarking results
 
-| Endpoint          | Throughput (req/s) | p50 (ms) | p95 (ms) | p99 (ms) |
-| ----------------- | -----------------: | -------: | -------: | -------: |
-| /predict_direct |              93.45 |    477.4 |    538.7 |    562.6 |
-| /predict        |             164.26 |    269.2 |    329.3 |    353.4 |
+| Endpoint           |   Throughput |       p50 |       p95 |       p99 |
+| ------------------ | -----------: | --------: | --------: | --------: |
+| /predict_direct  | 157.45 req/s | 209.43 ms | 320.59 ms | 342.25 ms |
+| /predict batched | 187.19 req/s | 208.83 ms | 296.49 ms | 352.47 ms |
 
-Dynamic batching achieved:
 
-- ~76% higher throughput
-- ~44% lower median latency
-- Significantly reduced tail latency (p95/p99)
-- Lower total benchmark runtime under concurrent load
+The async dynamic batching runtime improved throughput from 157.45 req/s to 187.19 req/s under 50 concurrent clients, an increase of approximately 18.9%.
+
+Median latency (p50) remained nearly identical, while p95 latency improved from 320.59 ms to 296.49 ms, p99 latency increased slightly due to batching queue delays, reflecting the expected throughput vs tail latency tradeoff in dynamic batching systems.
+
+Benchmarks were performed with:
+- 10,000 requests
+- 50 concurrent clients
+- 100 warmup requests
+- 2 Uvicorn workers
+- BATCH_TIMEOUT_MS=3
+- MAX_BATCH_SIZE=128
+- MAX_QUEUE_SIZE=500
 
 ## Metrics Endpoint
 The inference engine exposes runtime metrics on the `/metrics` endpoint
