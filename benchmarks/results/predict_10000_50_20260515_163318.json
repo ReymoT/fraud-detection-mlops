@@ -1,0 +1,13 @@
+{
+  "endpoint": "/predict",
+  "requests": 10000,
+  "concurrency": 50,
+  "throughput_rps": 134.13804049439761,
+  "p50_ms": 343.5159999644384,
+  "p95_ms": 402.4530000751838,
+  "p99_ms": 421.63220001384616,
+  "avg_ms": 346.9295550296316,
+  "total_time_sec": 74.55006769997999,
+  "warmup_requests": 100,
+  "error_types": {}
+}

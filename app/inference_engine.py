@@ -6,7 +6,7 @@ import pandas as pd
 
 @dataclass
 class InferenceRequest:
-    features: pd.DataFrame
+    transaction: dict
     future: asyncio.Future
     created_at: float
 
@@ -15,11 +15,13 @@ class DynamicBatcher:
     def __init__(
         self,
         model,
+        preprocess_fn,
         max_batch_size: int = 64,
         batch_timeout_ms: int = 10,
         max_queue_size: int = 1000
     ):
         self.model = model
+        self.preprocess_fn = preprocess_fn
         self.max_batch_size = max_batch_size
         self.batch_timeout_ms = batch_timeout_ms
         self.max_queue_size = max_queue_size
@@ -38,7 +40,7 @@ class DynamicBatcher:
             self.running = True
             asyncio.create_task(self._batch_loop()) # runs independently
 
-    async def predict(self, features: pd.DataFrame):
+    async def predict(self, transaction: dict):
         if self.queue.full():
             self.rejected_requests += 1
             raise RuntimeError("Inference queue is full")
@@ -47,7 +49,7 @@ class DynamicBatcher:
         future = loop.create_future()
 
         request = InferenceRequest(
-            features = features,
+            transaction = transaction,
             future = future,
             created_at = time.time()
         )
@@ -84,10 +86,13 @@ class DynamicBatcher:
                     break
 
             try:
-                batch_df = pd.concat(
-                    [req.features for req in batch],
-                    ignore_index = True,
-                ) # create a collective dataframe out of the batched request dataframes
+                # batch_df = pd.concat(
+                #     [req.features for req in batch],
+                #     ignore_index = True,
+                # ) # create a collective dataframe out of the batched request dataframes
+
+                transactions = [req.transaction for req in batch]
+                _, batch_df = self.preprocess_fn(transactions)
 
                 scores = self.model.predict_proba(batch_df)[:, 1]
 

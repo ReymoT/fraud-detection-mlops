@@ -38,20 +38,6 @@ BATCH_TIMEOUT_MS = int(os.getenv("BATCH_TIMEOUT_MS", "2"))
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "128"))
 MAX_QUEUE_SIZE = int(os.getenv("MAX_QUEUE_SIZE", "1000"))
 
-batcher = DynamicBatcher(
-    model = model,
-    max_batch_size = MAX_BATCH_SIZE,
-    batch_timeout_ms = BATCH_TIMEOUT_MS,
-    max_queue_size = MAX_QUEUE_SIZE
-)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await batcher.start()
-    yield
-
-app = FastAPI(lifespan = lifespan)
-
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
@@ -82,8 +68,8 @@ def log_prediction(transaction, response):
     file_exists = os.path.exists(LOG_PATH)
     df.to_csv(LOG_PATH, mode = "a", header = (not file_exists), index = False)
 
-def prepare_features(transaction_dict: dict):
-    raw_df = pd.DataFrame([transaction_dict])
+def prepare_features(transactions):
+    raw_df = pd.DataFrame(transactions)
 
     raw_df["trans_date_trans_time"] = pd.to_datetime(raw_df["trans_date_trans_time"])
     raw_df["dob"] = pd.to_datetime(raw_df["dob"])
@@ -114,7 +100,22 @@ def prepare_features(transaction_dict: dict):
 
     return raw_df, df
 
-def build_response(score: float, df: pd.DataFrame, include_explanations: bool = False):
+batcher = DynamicBatcher(
+    model = model,
+    preprocess_fn = prepare_features,
+    max_batch_size = MAX_BATCH_SIZE,
+    batch_timeout_ms = BATCH_TIMEOUT_MS,
+    max_queue_size = MAX_QUEUE_SIZE
+)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await batcher.start()
+    yield
+
+app = FastAPI(lifespan = lifespan)
+
+def build_response(score: float, df = None, include_explanations: bool = False):
     flag = int(score >= threshold)
 
     if score >= threshold:
@@ -128,10 +129,10 @@ def build_response(score: float, df: pd.DataFrame, include_explanations: bool = 
         "fraud_probability": float(score),
         "threshold": float(threshold),
         "risk_level": risk_level,
-        "flag": flag,
+        "flag": flag
     }
 
-    if include_explanations:
+    if include_explanations and df is not None:
         shap_values = explainer.shap_values(df)
 
         shap_dict = dict(zip(df.columns, shap_values[0]))
@@ -157,7 +158,7 @@ def home():
 def predict_direct(transaction: Transaction, explain: bool = False, log: bool = False):
     transaction_dict = transaction.model_dump()
 
-    raw_df, df = prepare_features(transaction_dict)
+    raw_df, df = prepare_features([transaction_dict])
 
     score = model.predict_proba(df)[:, 1][0]
 
@@ -172,11 +173,11 @@ def predict_direct(transaction: Transaction, explain: bool = False, log: bool = 
 async def predict(transaction: Transaction, explain: bool = False, log: bool = False):
     transaction_dict = transaction.model_dump()
 
-    raw_df, df = prepare_features(transaction_dict)
+    raw_df, df = prepare_features([transaction_dict])
 
     try:
         score = await asyncio.wait_for(
-            batcher.predict(df),
+            batcher.predict(transaction_dict),
             timeout = 5
         )
 
@@ -192,6 +193,13 @@ async def predict(transaction: Transaction, explain: bool = False, log: bool = F
             status_code = 504,
             detail = "Inference request timed out"
         )
+    
+    # Only preprocess this one row again if explanations/logging are requested
+    if explain or log:
+        raw_df, df = prepare_features([transaction_dict])
+    else:
+        raw_df = None
+        df = None
 
     response = build_response(score, df, include_explanations = explain)
 

@@ -24,28 +24,39 @@ PAYLOAD = {
 }
 
 
-async def send_request(client, url, latencies):
+async def send_request(client, url, latencies, errors):
     start = time.perf_counter()
 
-    response = await client.post(url, json = PAYLOAD)
-    response.raise_for_status() # raise exception in case of error
+    try:
+        response = await client.post(url, json = PAYLOAD)
+        response.raise_for_status() # raise exception in case of error
 
-    end = time.perf_counter()
+        end = time.perf_counter()
+        latencies.append((end - start) * 1000)
 
-    latencies.append((end - start) * 1000)
+    except Exception as e:
+        errors.append(type(e).__name__)
 
 
 async def run_benchmark(endpoint, requests, concurrency, warmup):
     url = f"http://127.0.0.1:8000{endpoint}"
 
     latencies = []
+    errors = []
 
     limits = httpx.Limits(
         max_connections = concurrency,
         max_keepalive_connections = concurrency
     )
 
-    async with httpx.AsyncClient(timeout = 30, limits = limits) as client:
+    timeout = httpx.Timeout(
+        connect = 10.0,
+        read = 60.0,
+        write = 10.0,
+        pool = 60.0
+    )
+
+    async with httpx.AsyncClient(timeout = timeout, limits = limits) as client:
         # Warmup phase
         warmup_latencies = []
 
@@ -53,7 +64,7 @@ async def run_benchmark(endpoint, requests, concurrency, warmup):
             batch_size = min(concurrency, warmup - i)
 
             tasks = [
-                send_request(client, url, warmup_latencies) for _ in range(batch_size)
+                send_request(client, url, warmup_latencies, errors) for _ in range(batch_size)
             ]
 
             await asyncio.gather(*tasks)
@@ -67,11 +78,11 @@ async def run_benchmark(endpoint, requests, concurrency, warmup):
             batch_size = min(concurrency, requests - i)
 
             tasks = [
-                send_request(client, url, latencies) for _ in range(batch_size)
+                send_request(client, url, latencies, errors) for _ in range(batch_size)
             ]
 
             await asyncio.gather(*tasks)
-            
+
         end = time.perf_counter()
 
     total_time = end - start
@@ -93,7 +104,10 @@ async def run_benchmark(endpoint, requests, concurrency, warmup):
         "p99_ms": percentile(99),
         "avg_ms": statistics.mean(latencies),
         "total_time_sec": total_time,
-        "warmup_requests": warmup
+        "warmup_requests": warmup,
+        "error_types": dict(
+            (e, errors.count(e)) for e in set(errors)
+        )
     }
 
     return results
