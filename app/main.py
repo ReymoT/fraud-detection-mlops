@@ -175,6 +175,8 @@ async def predict(transaction: Transaction, explain: bool = False, log: bool = F
 
     raw_df, df = prepare_features([transaction_dict])
 
+    # TEST TEST
+
     try:
         score = await asyncio.wait_for(
             batcher.predict(transaction_dict),
