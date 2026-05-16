@@ -259,7 +259,3 @@ A full cloud production deployment would add:
 - Managed Kafka such as Confluent Cloud or AWS MSK
 - Managed Airflow such as MWAA, Astronomer, or Cloud Composer
 - Cloud deployment on ECS, SageMaker, or Kubernetes
-
-Container registry
-
-Cloud deployment on ECS, SageMaker, or Kubernetes
