@@ -9,12 +9,17 @@ class DummyModel:
         probs = np.full(len(X), 0.7)
         return np.column_stack([1 - probs, probs])
 
+def dummy_preprocess(transactions):
+    raw_df = pd.DataFrame(transactions)
+    features = raw_df.copy()
+    return raw_df, features
 
 def test_dynamic_batcher_returns_score():
     async def run_test():
         model = DummyModel()
         batcher = DynamicBatcher(
             model = model,
+            preprocess_fn = dummy_preprocess,
             max_batch_size = 4,
             batch_timeout_ms = 1
         )
@@ -44,6 +49,7 @@ def test_dynamic_batcher_batches_multiple_requests():
         model = DummyModel()
         batcher = DynamicBatcher(
             model = model,
+            preprocess_fn = dummy_preprocess,
             max_batch_size = 8,
             batch_timeout_ms = 5
         )
