@@ -26,10 +26,10 @@ def test_dynamic_batcher_returns_score():
 
         await batcher.start()
 
-        df = pd.DataFrame({"x": [1]})
+        transaction = {"x": 1}
 
         score = await asyncio.wait_for(
-            batcher.predict(df),
+            batcher.predict(transaction),
             timeout = 2
         )
 
@@ -56,15 +56,15 @@ def test_dynamic_batcher_batches_multiple_requests():
 
         await batcher.start()
 
-        df = pd.DataFrame({"x": [1]})
+        transaction = {"x": 1}
 
         scores = await asyncio.wait_for(
             asyncio.gather(
-                *[batcher.predict(df) for _ in range(4)]
+                *[batcher.predict(transaction) for _ in range(4)]
             ),
             timeout = 2
         )
-
+        
         assert scores == [0.7, 0.7, 0.7, 0.7]
 
         metrics = batcher.metrics()

@@ -103,8 +103,8 @@ class DynamicBatcher:
                         req.future.set_result(float(score)) # set future as the predicted score
 
             except Exception as e:
-                if not req.future.cancelled():
-                    for req in batch:
+                for req in batch:
+                    if not req.future.cancelled():
                         req.future.set_exception(e)
 
     def metrics(self):
