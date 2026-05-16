@@ -249,17 +249,16 @@ During load testing, CPU utilization exceeded the 60% target and Kubernetes scal
 | Observed scale-up | 2 → 6 pods |
 
 ## Notes
-The current Airflow setup uses SQLite and SequentialExecutor for local development. A production deployment would use:
+The local Airflow setup uses PostgreSQL, Redis, and CeleryExecutor for production-style distributed orchestration.
 
-PostgreSQL metadata database
+A full cloud production deployment would add:
 
-CeleryExecutor or KubernetesExecutor
-
-Redis/RabbitMQ broker if using Celery
-
-Cloud object storage for artifacts
-
-Secrets manager
+- Cloud object storage for MLflow artifacts, model files, monitoring reports, and logs
+- Secrets manager for database passwords, API keys, and service credentials
+- Container registry such as Docker Hub, GHCR, ECR, or GCR
+- Managed Kafka such as Confluent Cloud or AWS MSK
+- Managed Airflow such as MWAA, Astronomer, or Cloud Composer
+- Cloud deployment on ECS, SageMaker, or Kubernetes
 
 Container registry
 
