@@ -235,6 +235,19 @@ fraud-detection-mlops/
 └── streaming/            # Simulated transaction stream
 ```
 
+### Kubernetes Autoscaling
+
+The FastAPI inference service was deployed to Kubernetes with a Horizontal Pod Autoscaler.
+
+During load testing, CPU utilization exceeded the 60% target and Kubernetes scaled the deployment from 2 replicas to the maximum of 6 replicas.
+
+| Metric | Value |
+|---|---:|
+| Min replicas | 2 |
+| Max replicas | 6 |
+| CPU target | 60% |
+| Observed scale-up | 2 → 6 pods |
+
 ## Notes
 The current Airflow setup uses SQLite and SequentialExecutor for local development. A production deployment would use:
 
