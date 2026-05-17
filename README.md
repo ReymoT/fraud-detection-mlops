@@ -16,6 +16,7 @@ Includes:
 - MLflow experiment tracking
 - Evidently AI drift monitoring
 - Streamlit dashboard
+- Prometheus/Grafana for benchmarking
 - Docker + Docker Compose deployment
 - GitHub Actions CI/CD with tests/coverage, Docker build, security and vulnerability checks
 
@@ -247,6 +248,19 @@ During load testing, CPU utilization exceeded the 60% target and Kubernetes scal
 | Max replicas | 6 |
 | CPU target | 60% |
 | Observed scale-up | 2 → 6 pods |
+
+## Monitoring and Observability
+
+The inference service exposes Prometheus metrics and Grafana dashboards for:
+
+- Request throughput
+- p50/p99 latency
+- Queue depth
+- Dynamic batch size
+- Rejected requests
+- Timed out requests
+
+The dashboard demonstrates how the batching engine adapts under concurrent load while maintaining bounded latency and queue growth.
 
 ## Notes
 The local Airflow setup uses PostgreSQL, Redis, and CeleryExecutor for production-style distributed orchestration.
