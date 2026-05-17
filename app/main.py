@@ -10,6 +10,49 @@ from app.inference_engine import DynamicBatcher
 from contextlib import asynccontextmanager
 from fastapi import HTTPException
 import asyncio
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from fastapi import Response
+import time
+
+REQUEST_COUNT = Counter(
+    "fraud_api_requests_total",
+    "Total API requests",
+    ["endpoint"]
+)
+
+REQUEST_LATENCY = Histogram(
+    "fraud_api_request_latency_seconds",
+    "Request latency",
+    ["endpoint"]
+)
+
+QUEUE_DEPTH = Gauge(
+    "fraud_inference_queue_depth",
+    "Current inference queue depth"
+)
+
+AVG_BATCH_SIZE = Gauge(
+    "fraud_inference_avg_batch_size",
+    "Average batch size"
+)
+
+REJECTED_REQUESTS = Gauge(
+    "fraud_inference_rejected_requests",
+    "Rejected inference requests"
+)
+
+TIMED_OUT_REQUESTS = Gauge(
+    "fraud_inference_timed_out_requests",
+    "Timed out inference requests"
+)
+
+def update_inference_gauges():
+    metrics = batcher.metrics()
+
+    QUEUE_DEPTH.set(metrics["queue_depth"])
+    AVG_BATCH_SIZE.set(metrics["avg_batch_size"])
+    REJECTED_REQUESTS.set(metrics["rejected_requests"])
+    TIMED_OUT_REQUESTS.set(metrics["timed_out_requests"])
 
 class Transaction(BaseModel):
     amt: float
@@ -156,60 +199,85 @@ def home():
 
 @app.post("/predict_direct")
 def predict_direct(transaction: Transaction, explain: bool = False, log: bool = False):
-    transaction_dict = transaction.model_dump()
+    start = time.perf_counter()
+    REQUEST_COUNT.labels(endpoint="/predict").inc()
 
-    raw_df, df = prepare_features([transaction_dict])
+    try:
+        transaction_dict = transaction.model_dump()
 
-    score = model.predict_proba(df)[:, 1][0]
+        raw_df, df = prepare_features([transaction_dict])
 
-    response = build_response(score, df, include_explanations = explain)
+        score = model.predict_proba(df)[:, 1][0]
 
-    if log:
-        log_prediction(raw_df.iloc[0].to_dict(), response)
+        response = build_response(score, df, include_explanations = explain)
 
-    return response
+        if log:
+            log_prediction(raw_df.iloc[0].to_dict(), response)
+
+        return response
+
+    finally:
+        REQUEST_LATENCY.labels(endpoint = "/predict_direct").observe(
+            time.perf_counter() - start
+        )
 
 @app.post("/predict")
 async def predict(transaction: Transaction, explain: bool = False, log: bool = False):
-    transaction_dict = transaction.model_dump()
-
-    raw_df, df = prepare_features([transaction_dict])
-
-    # TEST TEST
+    start = time.perf_counter()
+    REQUEST_COUNT.labels(endpoint="/predict").inc()
 
     try:
-        score = await asyncio.wait_for(
-            batcher.predict(transaction_dict),
-            timeout = 5
-        )
+        transaction_dict = transaction.model_dump()
 
-    except RuntimeError:
-        raise HTTPException(
-            status_code = 503,
-            detail = "Inference queue is full"
-        )
-
-    except asyncio.TimeoutError:
-        batcher.record_timeout()
-        raise HTTPException(
-            status_code = 504,
-            detail = "Inference request timed out"
-        )
-    
-    # Only preprocess this one row again if explanations/logging are requested
-    if explain or log:
         raw_df, df = prepare_features([transaction_dict])
-    else:
-        raw_df = None
-        df = None
 
-    response = build_response(score, df, include_explanations = explain)
+        try:
+            score = await asyncio.wait_for(
+                batcher.predict(transaction_dict),
+                timeout = 5
+            )
 
-    if log:
-        log_prediction(raw_df.iloc[0].to_dict(), response)
+        except RuntimeError:
+            raise HTTPException(
+                status_code = 503,
+                detail = "Inference queue is full"
+            )
 
-    return response
+        except asyncio.TimeoutError:
+            batcher.record_timeout()
+            raise HTTPException(
+                status_code = 504,
+                detail = "Inference request timed out"
+            )
+        
+        # Only preprocess this one row again if explanations/logging are requested
+        if explain or log:
+            raw_df, df = prepare_features([transaction_dict])
+        else:
+            raw_df = None
+            df = None
+
+        response = build_response(score, df, include_explanations = explain)
+
+        if log:
+            log_prediction(raw_df.iloc[0].to_dict(), response)
+        
+        return response
+
+    finally:
+        REQUEST_LATENCY.labels(endpoint = "/predict").observe(
+            time.perf_counter() - start
+        )
+
 
 @app.get("/metrics/inference")
 def inference_metrics():
     return batcher.metrics()
+
+@app.get("/metrics")
+def prometheus_metrics():
+    update_inference_gauges()
+    return Response(
+        content = generate_latest(),
+        media_type = CONTENT_TYPE_LATEST
+    )

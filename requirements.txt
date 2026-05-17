@@ -14,3 +14,4 @@ evidently
 schedule
 scipy
 kafka-python
+prometheus-client

@@ -42,5 +42,8 @@ Thumbs.db
 data/*.csv
 *.csv
 
+# Benchmark results
+benchmarks/results
+
 tmp/
 temp/

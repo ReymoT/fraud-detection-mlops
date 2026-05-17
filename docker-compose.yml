@@ -17,6 +17,23 @@ x-airflow-common-volumes: &airflow-common-volumes
   - ./requirements-airflow.txt:/opt/airflow/requirements-airflow.txt
 
 services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: fraud-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: fraud-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
   api:
     build: .
     container_name: fraud-api
