@@ -226,14 +226,24 @@ The DAG:
 ```
 fraud-detection-mlops/
 │
-├── app/                  # FastAPI inference service, inference engine
+├── app/                  # FastAPI inference service and dynamic batching engine
+├── src/                  # Model training, preprocessing, feature engineering
 ├── dashboard/            # Streamlit monitoring dashboard
-├── dags/                 # Airflow DAGs
-├── monitoring/           # Evidently drift reports
+├── dags/                 # Airflow DAGs and orchestration pipelines
+├── monitoring/           # Drift detection and retraining logic
+├── streaming/            # Kafka transaction stream simulation
+├── benchmarks/           # Load testing and inference benchmarking
+├── tests/                # Unit and integration tests
+├── k8s/                  # Kubernetes deployments, services, and HPA configs
+├── data/                 # Raw and processed datasets
 ├── models/               # Trained model artifacts
-├── benchmarks/           # Load testing + inference benchmarks
-├── tests/                # Integration tests
-└── streaming/            # Simulated transaction stream
+│
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── requirements-airflow.txt
+├── requirements-dev.txt
+└── README.md
 ```
 
 ### Kubernetes Autoscaling
