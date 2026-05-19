@@ -45,7 +45,10 @@ services:
     environment:
       BATCH_TIMEOUT_MS: 3
       MAX_BATCH_SIZE: 128
-      MAX_QUEUE_SIZE: 500 # default 1000
+      MAX_QUEUE_SIZE: 500
+      API_KEY: dev-secret-key
+      RATE_LIMIT_REQUESTS: 100
+      RATE_LIMIT_WINDOW_SECONDS: 60
 
   dashboard:
     build: .

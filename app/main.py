@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, Header, HTTPException, Request, Depends
 import joblib
 import pandas as pd
 import numpy as np
@@ -8,11 +8,36 @@ from datetime import datetime, timezone
 from pydantic import BaseModel
 from app.inference_engine import DynamicBatcher
 from contextlib import asynccontextmanager
-from fastapi import HTTPException
 import asyncio
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import Response
 import time
+from collections import defaultdict, deque
+
+API_KEY = os.getenv("API_KEY", "dev-secret-key")
+RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
+RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
+
+def verify_api_key(x_api_key: str = Header(default = None)):
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code = 401, detail = "Invalid or missing API key")
+
+request_log = defaultdict(deque)
+
+def rate_limit(request: Request):
+    client_ip = request.client.host
+    now = time.time()
+
+    window = request_log[client_ip]
+
+    while window and now - window[0] > RATE_LIMIT_WINDOW_SECONDS:
+        window.popleft()
+
+    if len(window) >= RATE_LIMIT_REQUESTS:
+        raise HTTPException(status_code = 429, detail = "Rate limit exceeded")
+
+    window.append(now)
+
+
 
 REQUEST_COUNT = Counter(
     "fraud_api_requests_total",
@@ -198,7 +223,7 @@ def home():
     return {"message": "Fraud Detection API running"}
 
 @app.post("/predict_direct")
-def predict_direct(transaction: Transaction, explain: bool = False, log: bool = False):
+def predict_direct(transaction: Transaction, explain: bool = False, log: bool = False, _: None = Depends(verify_api_key), __: None = Depends(rate_limit)):
     start = time.perf_counter()
     REQUEST_COUNT.labels(endpoint="/predict").inc()
 
@@ -222,7 +247,7 @@ def predict_direct(transaction: Transaction, explain: bool = False, log: bool = 
         )
 
 @app.post("/predict")
-async def predict(transaction: Transaction, explain: bool = False, log: bool = False):
+async def predict(transaction: Transaction, explain: bool = False, log: bool = False, _: None = Depends(verify_api_key), __: None = Depends(rate_limit)):
     start = time.perf_counter()
     REQUEST_COUNT.labels(endpoint="/predict").inc()
 

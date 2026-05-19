@@ -7,6 +7,8 @@ import json
 import os
 from datetime import datetime
 
+API_KEY = os.getenv("API_KEY", "dev-secret-key")
+HEADERS = {"x-api-key": API_KEY}
 
 PAYLOAD = {
     "amt": 5000,
@@ -28,7 +30,7 @@ async def send_request(client, url, latencies, errors):
     start = time.perf_counter()
 
     try:
-        response = await client.post(url, json = PAYLOAD)
+        response = await client.post(url, json = PAYLOAD, headers = HEADERS)
         response.raise_for_status() # raise exception in case of error
 
         end = time.perf_counter()
