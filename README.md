@@ -259,6 +259,22 @@ During load testing, CPU utilization exceeded the 60% target and Kubernetes scal
 | CPU target | 60% |
 | Observed scale-up | 2 → 6 pods |
 
+### k6 Kubernetes Load Test
+
+The Kubernetes-deployed inference API was load tested with k6 using staged traffic up to 100 virtual users.
+
+| Metric | Result |
+|---|---:|
+| Total requests | 38,323 |
+| Throughput | 319.3 req/s |
+| p95 latency | 145.35 ms |
+| Average latency | 75.26 ms |
+| Failed requests | 2 / 38,323 |
+| Failure rate | ~0.005% |
+| Max virtual users | 100 |
+
+The service maintained low latency and near-zero failure rate under staged load while Kubernetes HPA scaled the deployment horizontally.
+
 ## Monitoring and Observability
 
 The inference service exposes Prometheus metrics and Grafana dashboards for:
