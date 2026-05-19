@@ -17,6 +17,8 @@ payload = {
     "dob": "2003-01-01",
 }
 
+API_KEY = os.getenv("API_KEY", "dev-secret-key")
+HEADERS = {"x-api-key": API_KEY}
 
 @pytest.fixture
 def client():
@@ -44,7 +46,7 @@ def test_home_endpoint(client):
 
 
 def test_predict_direct_endpoint_returns_expected_fields(client):
-    response = client.post("/predict_direct", json=payload)
+    response = client.post("/predict_direct", json = payload, headers = HEADERS)
 
     assert response.status_code == 200
 
@@ -53,7 +55,7 @@ def test_predict_direct_endpoint_returns_expected_fields(client):
 
 
 def test_predict_direct_endpoint_with_explanations(client):
-    response = client.post("/predict_direct?explain=true", json = payload)
+    response = client.post("/predict_direct?explain=true", json = payload, headers = HEADERS)
 
     assert response.status_code == 200
 
