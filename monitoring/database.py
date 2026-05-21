@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -10,12 +10,17 @@ DATABASE_URL = os.getenv(
 engine = create_engine(DATABASE_URL, pool_pre_ping = True)
 
 
+
 def load_recent_predictions(limit = 5000):
-    query = f"""
+    query = text("""
         SELECT *
         FROM predictions
         ORDER BY logged_at DESC
-        LIMIT {limit}
-    """
+        LIMIT :limit
+    """)
 
-    return pd.read_sql(query, engine)
+    return pd.read_sql(
+        query,
+        engine,
+        params = {"limit": limit},
+    )
