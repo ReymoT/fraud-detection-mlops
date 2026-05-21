@@ -299,3 +299,8 @@ A full cloud production deployment would add:
 - Managed Kafka such as Confluent Cloud or AWS MSK
 - Managed Airflow such as MWAA, Astronomer, or Cloud Composer
 - Cloud deployment on ECS, SageMaker, or Kubernetes
+
+### Environment Variables
+
+Create a `.env` file from `.env.example` before running the stack.
+Sensitive configuration such as API keys and database credentials are injected through environment variables rather than hardcoded into deployment manifests.

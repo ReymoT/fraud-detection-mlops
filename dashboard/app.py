@@ -20,7 +20,7 @@ st.sidebar.metric("Decision Threshold", round(threshold, 4))
 st.sidebar.write("Threshold = top 0.5% risk cutoff")
 
 # load scored data
-uploaded_file = st.file_uploader("Upload scored transactions CSV", type=["csv"])
+uploaded_file = st.file_uploader("Upload scored transactions CSV", type = ["csv"])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
@@ -86,7 +86,7 @@ if uploaded_file is not None:
         category_scores = (
             df.groupby("category")["fraud_probability"]
             .mean()
-            .sort_values(ascending=False)
+            .sort_values(ascending = False)
             .reset_index()
         )
 

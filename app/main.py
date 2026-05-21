@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import shap
 import os
-from datetime import datetime, timezone
 from pydantic import BaseModel
 from app.inference_engine import DynamicBatcher
 from contextlib import asynccontextmanager
@@ -12,6 +11,8 @@ import asyncio
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 import time
 from collections import defaultdict, deque
+from sqlalchemy import text
+from app.database import engine, init_db
 
 API_KEY = os.getenv("API_KEY", "dev-secret-key")
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
@@ -120,10 +121,7 @@ def haversine(lat1, lon1, lat2, lon2):
     return 2 * R * np.arcsin(np.sqrt(a))
 
 def log_prediction(transaction, response):
-    os.makedirs("logs", exist_ok = True)
-
     row = {
-        "logged_at": datetime.now(timezone.utc).isoformat(),
         **transaction,
         "fraud_probability": response["fraud_probability"],
         "threshold": response["threshold"],
@@ -131,10 +129,27 @@ def log_prediction(transaction, response):
         "flag": response["flag"]
     }
 
-    df = pd.DataFrame([row])
+    query = text("""
+        INSERT INTO predictions (
+            amt, lat, long, merch_lat, merch_long, city_pop,
+            category, gender, state, merchant,
+            trans_date_trans_time, dob,
+            trans_hour, trans_dayofweek, trans_month,
+            age, is_night, distance,
+            fraud_probability, threshold, risk_level, flag
+        )
+        VALUES (
+            :amt, :lat, :long, :merch_lat, :merch_long, :city_pop,
+            :category, :gender, :state, :merchant,
+            :trans_date_trans_time, :dob,
+            :trans_hour, :trans_dayofweek, :trans_month,
+            :age, :is_night, :distance,
+            :fraud_probability, :threshold, :risk_level, :flag
+        )
+    """)
 
-    file_exists = os.path.exists(LOG_PATH)
-    df.to_csv(LOG_PATH, mode = "a", header = (not file_exists), index = False)
+    with engine.begin() as conn:
+        conn.execute(query, row)
 
 def prepare_features(transactions):
     raw_df = pd.DataFrame(transactions)
@@ -178,6 +193,7 @@ batcher = DynamicBatcher(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_db()
     await batcher.start()
     yield
 
@@ -306,3 +322,18 @@ def prometheus_metrics():
         content = generate_latest(),
         media_type = CONTENT_TYPE_LATEST
     )
+
+@app.get("/predictions/recent")
+def recent_predictions(limit: int = 10):
+    with engine.begin() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT *
+                FROM predictions
+                ORDER BY logged_at DESC
+                LIMIT :limit
+            """),
+            {"limit": limit},
+        ).mappings().all()
+
+    return [dict(row) for row in rows]

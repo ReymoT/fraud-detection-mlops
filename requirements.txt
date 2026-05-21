@@ -15,3 +15,5 @@ schedule
 scipy
 kafka-python
 prometheus-client
+sqlalchemy
+psycopg[binary]

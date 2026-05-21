@@ -4,6 +4,7 @@ import pandas as pd
 from evidently import Report
 from evidently.presets import DataDriftPreset, DataSummaryPreset
 from scipy.stats import wasserstein_distance
+from database import load_recent_predictions
 
 REPORT_DIR = "monitoring/reports"
 REFERENCE_PATH = "/opt/airflow/data/reference_transactions.csv"
@@ -47,7 +48,7 @@ def main():
     os.makedirs(REPORT_DIR, exist_ok = True)
 
     reference = pd.read_csv(REFERENCE_PATH)
-    current = pd.read_csv(CURRENT_PATH)
+    current = load_recent_predictions(limit = 5000)
 
     reference = reference[MONITORING_COLUMNS].dropna()
     current = current[MONITORING_COLUMNS].dropna()
