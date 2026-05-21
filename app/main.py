@@ -148,6 +148,8 @@ def log_prediction(transaction, response):
         )
     """)
 
+    if engine is None:
+        return
     with engine.begin() as conn:
         conn.execute(query, row)
 

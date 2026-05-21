@@ -3,9 +3,11 @@ from sqlalchemy import create_engine, text
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping = True)
+engine = create_engine(DATABASE_URL, pool_pre_ping = True) if DATABASE_URL else None
 
 def init_db():
+    if engine is None:
+        return
     with engine.begin() as conn:
         conn.execute(text("SELECT pg_advisory_lock(123456789);")) # prevent race condition
         try:
