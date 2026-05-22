@@ -33,6 +33,8 @@ services:
     container_name: fraud-grafana
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
   api:
@@ -203,3 +205,4 @@ services:
 volumes:
   airflow_postgres_data:
   app_postgres_data:
+  grafana_data:

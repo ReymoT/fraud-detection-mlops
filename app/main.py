@@ -14,6 +14,7 @@ from collections import defaultdict, deque
 from sqlalchemy import text
 from app.database import engine, init_db
 
+RELEASE_VERSION = os.getenv("RELEASE_VERSION", "local")
 API_KEY = os.getenv("API_KEY", "dev-secret-key")
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))
 RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "60"))
@@ -215,7 +216,8 @@ def build_response(score: float, df = None, include_explanations: bool = False):
         "fraud_probability": float(score),
         "threshold": float(threshold),
         "risk_level": risk_level,
-        "flag": flag
+        "flag": flag,
+        "release_version": RELEASE_VERSION
     }
 
     if include_explanations and df is not None:
@@ -243,7 +245,7 @@ def home():
 @app.post("/predict_direct")
 def predict_direct(transaction: Transaction, explain: bool = False, log: bool = False, _: None = Depends(verify_api_key), __: None = Depends(rate_limit)):
     start = time.perf_counter()
-    REQUEST_COUNT.labels(endpoint="/predict").inc()
+    REQUEST_COUNT.labels(endpoint = "/predict_direct").inc()
 
     try:
         transaction_dict = transaction.model_dump()
@@ -267,7 +269,7 @@ def predict_direct(transaction: Transaction, explain: bool = False, log: bool = 
 @app.post("/predict")
 async def predict(transaction: Transaction, explain: bool = False, log: bool = False, _: None = Depends(verify_api_key), __: None = Depends(rate_limit)):
     start = time.perf_counter()
-    REQUEST_COUNT.labels(endpoint="/predict").inc()
+    REQUEST_COUNT.labels(endpoint = "/predict").inc()
 
     try:
         transaction_dict = transaction.model_dump()
@@ -339,3 +341,7 @@ def recent_predictions(limit: int = 10):
         ).mappings().all()
 
     return [dict(row) for row in rows]
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "release_version": RELEASE_VERSION}

@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: fraud-api-stable-pdb
+spec:
+  minAvailable: 7
+  selector:
+    matchLabels:
+      app: fraud-api
+      version: stable

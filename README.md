@@ -89,20 +89,49 @@ Evidently AI used for:
 ```
 Simulated transaction stream
         ↓
+Kafka Streaming Pipeline
+        ↓
 FastAPI inference service
         ↓
-Prediction logs
+API key authentication + rate limiting
         ↓
-Airflow scheduled monitoring
+Custom async dynamic batching engine
         ↓
-Evidently drift report
+XGBoost fraud inference
         ↓
-Conditional retraining
+PostgreSQL prediction persistence
+        ↓
+Prometheus metrics collection
+        ↓
+Grafana observability dashboards
+        ↓
+Airflow orchestration (CeleryExecutor)
+        ↓
+Evidently drift detection
+        ↓
+Conditional retraining workflow
         ↓
 MLflow experiment tracking
         ↓
 Model promotion gate
+        ↓
+Kubernetes deployment
+        ↓
+Horizontal Pod Autoscaling (HPA)
+        ↓
+Canary rollout strategy
 ```
+
+## Architecture Highlights
+
+- Async dynamic batching inference engine
+- PostgreSQL prediction persistence
+- Airflow orchestration with CeleryExecutor
+- Kafka transaction streaming
+- Real-time Prometheus metrics
+- Kubernetes autoscaling and canary rollout
+- Authenticated API with rate limiting
+- Drift monitoring and retraining workflows
 
 ## Inference Performance Layer
 The API supports two inference modes:
@@ -246,6 +275,24 @@ fraud-detection-mlops/
 └── README.md
 ```
 
+## Kubernetes Deployment
+
+The inference API was containerized and deployed to Kubernetes with production-style operational controls and autoscaling.
+
+Features include:
+
+- Horizontal Pod Autoscaler (HPA) based on CPU utilization
+- Canary deployment strategy using separate stable and canary deployments
+- Readiness, liveness, and startup probes
+- PodDisruptionBudget for high availability during rollouts
+- Resource requests and limits
+- Kubernetes Secrets for API key management
+- Rolling update deployment strategy
+- Prometheus metrics scraping
+- Grafana monitoring dashboards
+- k6 distributed load testing
+
+
 ### Kubernetes Autoscaling
 
 The FastAPI inference service was deployed to Kubernetes with a Horizontal Pod Autoscaler.
@@ -265,15 +312,43 @@ The Kubernetes-deployed inference API was load tested with k6 using staged traff
 
 | Metric | Result |
 |---|---:|
-| Total requests | 38,323 |
-| Throughput | 319.3 req/s |
-| p95 latency | 145.35 ms |
-| Average latency | 75.26 ms |
-| Failed requests | 2 / 38,323 |
-| Failure rate | ~0.005% |
 | Max virtual users | 100 |
+| Total requests | 30,654 |
+| Throughput | 255.40 req/s |
+| Average latency | 119.33 ms |
+| Median latency | 103.89 ms |
+| p90 latency | 227.21 ms |
+| p95 latency | 268.14 ms |
+| Max latency | 556.26 ms |
+| Failed requests | 0 |
+| Failure rate | 0.00% |
+| Checks passed | 100% |
 
-The service maintained low latency and near-zero failure rate under staged load while Kubernetes HPA scaled the deployment horizontally.
+The Kubernetes-deployed inference API sustained 255 req/s at 100 virtual users with 0% failed requests and 268 ms p95 latency.
+
+## Canary Deployment Strategy
+
+The project implements a replica-based canary deployment pattern in Kubernetes.
+
+Traffic is routed through a shared Kubernetes Service to:
+
+- Stable deployment (`fraud-api:v1.0.0`)
+- Canary deployment (`fraud-api:v1.1.0-canary`)
+
+The canary release can test:
+- Different batching configurations
+- New inference logic
+- Performance tuning changes
+
+Canary pods expose a distinct `release_version` in API responses for validation during rollout testing.
+
+Example:
+
+```json
+{
+  "release_version": "canary-v1.1.0"
+}
+```
 
 ## Monitoring and Observability
 
