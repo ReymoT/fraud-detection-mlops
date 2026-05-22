@@ -1,5 +1,5 @@
 # Fraud Detection MLOps System
-![CI](https://github.com/<username>/<repo>/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/ReymoT/fraud-detection-mlops/actions/workflows/ci.yml/badge.svg)
 ![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-production-009688)
