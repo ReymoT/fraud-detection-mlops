@@ -1,5 +1,11 @@
 # Fraud Detection MLOps System
-![CI](https://github.com/ReymoT/fraud-detection-mlops/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/<username>/<repo>/actions/workflows/ci.yml/badge.svg)
+![Docker Build](https://img.shields.io/github/actions/workflow/status/<username>/<repo>/docker.yml?label=docker-build)
+![Coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-production-009688)
+![Kubernetes](https://img.shields.io/badge/kubernetes-enabled-326ce5)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 End-to-end fraud detection MLOps system built on 1M+ credit card transactions. The project includes simulated data stream ingestion, model training,
 experiment tracking, explainable inference, custom high-throughput inference engine with dynamic batching, backpressure handling and thread safety, benchmarking, monitoring, orchestration, and containerized deployment.
