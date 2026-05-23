@@ -24,7 +24,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: fraud-api
-          image: fraud-api:v1.1.0-canary
+          image: us-central1-docker.pkg.dev/fraud-detection-497220/fraud-detection/fraud-api:v1.1.0-canary
           resources:
             requests:
               cpu: "250m"
@@ -36,18 +36,24 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            failureThreshold: 12
-            periodSeconds: 5
+            initialDelaySeconds: 30
+            failureThreshold: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 8000
-            periodSeconds: 5
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: 8000
-            periodSeconds: 10
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -66,6 +72,6 @@ spec:
             - name: MAX_QUEUE_SIZE
               value: "500"
             - name: RATE_LIMIT_REQUESTS
-              value: "100000"
+              value: "1000"
             - name: RATE_LIMIT_WINDOW_SECONDS
               value: "60"
