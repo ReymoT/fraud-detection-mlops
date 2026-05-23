@@ -14,7 +14,7 @@ consumer = KafkaConsumer(
     auto_offset_reset = "earliest",
     enable_auto_commit = True,
     group_id = "fraud-alert-consumer-v1",
-    value_deserializer = lambda m: json.loads(m.decode("utf-8")),
+    value_deserializer = lambda m: json.loads(m.decode("utf-8"))
 )
 
 print("Listening for scored transactions...")
@@ -32,7 +32,7 @@ def save_alert(event):
         "threshold": prediction["threshold"],
         "risk_level": prediction["risk_level"],
         "flag": prediction["flag"],
-        "top_reasons": json.dumps(prediction.get("top_reasons", [])),
+        "top_reasons": json.dumps(prediction.get("top_reasons", []))
     }
 
     df = pd.DataFrame([row])
