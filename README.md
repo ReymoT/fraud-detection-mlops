@@ -126,7 +126,7 @@ The inference API is deployed to GKE with production-style operational controls:
 
 The dashboards visualize real-time inference telemetry exported from the batching runtime and scraped by Prometheus across Kubernetes pods.
 
-![Grafana Dashboard](images/grafana-dashboard.png)
+![Grafana Dashboard](images/grafana-dashboard.PNG)
 
 Live metrics tracked:
 - Request throughput
@@ -138,7 +138,7 @@ Live metrics tracked:
 
 ### Kubernetes Pods
 
-![Kubernetes Pods](images/k8s-pods.png)
+![Kubernetes Pods](images/k8s-pods.PNG)
 
 ### HPA Autoscaling
 
@@ -183,7 +183,7 @@ Traffic is split between stable and canary deployments via replica ratio through
 
 Requests routed through the shared Kubernetes Service return different release versions depending on stable/canary pod routing.
 
-![Canary Response](images/canary-response.png)
+![Canary Response](images/canary-response.PNG)
 
 ## MLOps Pipeline
 
@@ -274,9 +274,9 @@ SHAP values are computed per request and returned as `top_reasons`, giving each 
 
 ## Streamlit Dashboard
 
-![Streamlit Dashboard](images/stream1.png)
-![Streamlit Dashboard](images/stream2.png)
-![Streamlit Dashboard](images/stream3.png)
+![Streamlit Dashboard](images/stream1.PNG)
+![Streamlit Dashboard](images/stream2.PNG)
+![Streamlit Dashboard](images/stream3.PNG)
 
 Live views:
 - Fraud score distribution
