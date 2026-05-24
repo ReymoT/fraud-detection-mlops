@@ -58,6 +58,7 @@ Kafka Producer → Kafka Consumer → Inference API → Scored Transactions
 Airflow DAG → Evidently Drift Monitor → Conditional Retraining → MLflow → Model Promotion Gate
 ```
 
+![System Architecture](images/fraud_detection_architecture.svg)
 
 ## Inference Engine
 
