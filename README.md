@@ -357,6 +357,6 @@ Sensitive configuration (API keys, database credentials) is injected via environ
 
 - Backpressure needs an explicit design decision, not an afterthought. The bounded queue with 503 rejection was a deliberate choice. Shedding load is preferable to unbounded queue growth that degrades latency for all requests.
 
-- Canary deployment via replica ratio is operationally simple but coarse. A 1:2 canary:stable ratio gives roughly 33% traffic split. A service mesh (Istio) would allow precise percentage-based routing without replica math.
+- The canary deployment ran 1 canary pod alongside 2 stable pods — a 1:2 ratio approximating 33% canary traffic which was constrained by GKE Autopilot free tier quota limits. In production, the canary would typically receive 5–10% of traffic initially, scaling up only after metric validation. A service mesh (Istio) would allow precise percentage-based routing without replica math.
 
 - The simulated Kafka stream simplifies real-world complexity. A live stream introduces out-of-order events, consumer lag under backpressure, and partition rebalancing - none of which the simulation exercises.
