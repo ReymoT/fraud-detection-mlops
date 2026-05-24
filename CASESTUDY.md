@@ -1,4 +1,4 @@
-# Building a Production-Style Fraud Inference Platform on Kubernetes
+# Dynamic Batching, Canary Deployments, and What Actually Breaks in Kubernetes: Building a Production Fraud Inference Platform
 
 Early versions of the project explored unsupervised anomaly detection approaches including One-Class SVM, Isolation Forest, and Kernel Density Estimation.
 
@@ -196,8 +196,6 @@ The inference service exported throughput, queue depth, batch size, timeout coun
 Grafana dashboards made queue behavior visible during load testing.
 
 Without observability, many runtime behaviors would have remained invisible such as queue saturation or latency spikes.
-
-The monitoring stack changed debugging from guesswork into measurement.
 
 # What I Would Do Differently
 
