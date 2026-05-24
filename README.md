@@ -65,22 +65,22 @@ Fraud transaction volume is inherently bursty. End-of-day settlement periods and
 
 **Two inference modes:**
 
-Direct inference — single request, immediate prediction:
+Direct inference: single request, immediate prediction:
 ```
 client request → FastAPI → model.predict_proba(single) → response
 ```
 
-Dynamic batched inference — requests grouped within a timeout window:
+Dynamic batched inference: requests grouped within a timeout window:
 ```
 client request → async queue → dynamic batcher → model.predict_proba(batch) → futures resolved
 ```
 
 **Runtime stability features:**
 
-- Bounded async queue with configurable max size — prevents unbounded memory growth under overload
-- HTTP 503 rejection when queue is full — explicit backpressure rather than silent degradation
-- HTTP 504 on request timeout — bounded latency guarantees under sustained load
-- Future cancellation safety — no orphaned futures on client disconnect
+- Bounded async queue with configurable max size. Prevents unbounded memory growth under overload
+- HTTP 503 rejection when queue is full. Explicit backpressure rather than silent degradation
+- HTTP 504 on request timeout. Bounded latency guarantees under sustained load
+- Future cancellation safety. No orphaned futures on client disconnect
 - Runtime metrics endpoint at `/metrics`
 
 ### Benchmarking Results
@@ -92,7 +92,7 @@ Benchmarks run with 10,000 requests, 50 concurrent clients, 100 warmup requests,
 | /predict_direct | 157.45 req/s | 209.43 ms | 320.59 ms | 342.25 ms |
 | /predict (batched) | 187.19 req/s | 208.83 ms | 296.49 ms | 352.47 ms |
 
-Dynamic batching achieved **+18.9% throughput** and **-7.5% p95 latency**. Median latency remained nearly identical, confirming that batching overhead does not affect typical requests. The slight p99 increase reflects the expected throughput vs tail latency tradeoff inherent to queue-based batching — requests arriving just after a batch dispatches wait for the next timeout window.
+Dynamic batching achieved **+18.9% throughput** and **-7.5% p95 latency**. Median latency remained nearly identical, confirming that batching overhead does not affect typical requests. The slight p99 increase reflects the expected throughput vs tail latency tradeoff inherent to queue-based batching, the requests arriving just after a batch dispatches wait for the next timeout window.
 
 ### Runtime Metrics Endpoint
 
@@ -113,14 +113,14 @@ Dynamic batching achieved **+18.9% throughput** and **-7.5% p95 latency**. Media
 
 The inference API is deployed to GKE with production-style operational controls:
 
-- **Horizontal Pod Autoscaler** — CPU-based scaling, 2–6 replicas
-- **Canary deployment** — stable and canary deployments behind a shared Service and LoadBalancer
-- **Rolling updates** — zero-downtime deployments
-- **Readiness, liveness, and startup probes** — traffic only routes to healthy pods
-- **PodDisruptionBudget** — availability guarantees during rollouts
-- **Resource requests and limits** — prevents noisy-neighbour resource contention
-- **Kubernetes Secrets** — credentials injected at runtime, never hardcoded
-- **Prometheus scraping** — metrics collected from all pods automatically
+- **Horizontal Pod Autoscaler** - CPU-based scaling, 2–6 replicas
+- **Canary deployment** - stable and canary deployments behind a shared Service and LoadBalancer
+- **Rolling updates** - zero-downtime deployments
+- **Readiness, liveness, and startup probes** - traffic only routes to healthy pods
+- **PodDisruptionBudget** - availability guarantees during rollouts
+- **Resource requests and limits** - prevents noisy-neighbour resource contention
+- **Kubernetes Secrets** - credentials injected at runtime, never hardcoded
+- **Prometheus scraping** - metrics collected from all pods automatically
 
 ### Grafana Dashboard
 
@@ -218,7 +218,7 @@ The promotion gate compares candidate model PR-AUC against the registered produc
 
 ## Kafka Streaming Pipeline
 
-Transaction events are produced to a Kafka topic, consumed by the inference service for real-time scoring, and published to a scored transactions topic. A dead letter queue (DLQ) captures failed events for inspection and replay — critical in fraud detection where dropping transactions has real consequences.
+Transaction events are produced to a Kafka topic, consumed by the inference service for real-time scoring, and published to a scored transactions topic. A dead letter queue (DLQ) captures failed events for inspection and replay which is critical in fraud detection where dropping transactions has real consequences.
 
 ```
 producer.py → kafka topic → consumer → inference API → scored topic
@@ -269,7 +269,7 @@ python streaming/producer.py
 }
 ```
 
-SHAP values are computed per request and returned as `top_reasons`, giving each prediction an auditable explanation — a regulatory requirement in production fraud systems.
+SHAP values are computed per request and returned as `top_reasons`, giving each prediction an auditable explanation which is not an optional feature but rather a regulatory requirement in production fraud systems.
 
 
 ## Streamlit Dashboard
@@ -342,17 +342,21 @@ Sensitive configuration (API keys, database credentials) is injected via environ
 
 ## What I'd Add in Production
 
-- **Managed Kafka** (Confluent Cloud or AWS MSK) — eliminates broker operational overhead
-- **Managed Airflow** (MWAA, Astronomer, or Cloud Composer) — removes CeleryExecutor self-management
-- **Cloud object storage** (GCS or S3) — centralized artifact storage for MLflow, models, and drift reports
-- **Container registry** (GCR, ECR, or GHCR) — versioned image management
-- **KubernetesExecutor for Airflow** — per-task pod scaling instead of fixed Celery workers
-- **Triton Inference Server** — multi-model serving with GPU optimization
-- **Distributed tracing** (Jaeger or OpenTelemetry) — request tracing across Kafka, inference, and retraining services
+- **Terraform** - provisioning GKE, IAM, networking, and monitoring infrastructure
+- **Managed Kafka** (Confluent Cloud or AWS MSK) - eliminates broker operational overhead
+- **Managed Airflow** (MWAA, Astronomer, or Cloud Composer) - removes CeleryExecutor self-management
+- **Cloud object storage** (GCS or S3) - centralized artifact storage for MLflow, models, and drift reports
+- **Container registry** (GCR, ECR, or GHCR) - versioned image management
+- **KubernetesExecutor for Airflow** - per-task pod scaling instead of fixed Celery workers
+- **Triton Inference Server** - multi-model serving with GPU optimization
+- **Distributed tracing** (Jaeger or OpenTelemetry) - request tracing across Kafka, inference, and retraining services
 
 ## Lessons Learned
 
-- Dynamic batching improves throughput meaningfully but the p99 tradeoff is real and measurable. The batch timeout window is the key tuning parameter — too short and you lose batching efficiency, too long and tail latency grows. The 3ms timeout was chosen empirically from benchmarking across the curve.
-- Backpressure needs an explicit design decision, not an afterthought. The bounded queue with 503 rejection was a deliberate choice — shedding load is preferable to unbounded queue growth that degrades latency for all requests.
-- Canary deployment via replica ratio is operationally simple but coarse — a 1:4 canary:stable ratio gives roughly 20% traffic split. Service mesh (Istio) would allow precise percentage-based routing without replica math.
-- The simulated Kafka stream simplifies real-world complexity. A live stream introduces out-of-order events, consumer lag under backpressure, and partition rebalancing — none of which the simulation exercises.
+- Dynamic batching improves throughput meaningfully but the p99 tradeoff is real and measurable. The batch timeout window is the key tuning parameter. Too short and you lose batching efficiency, too long and tail latency grows. The 3ms timeout was chosen empirically from benchmarking across the curve.
+
+- Backpressure needs an explicit design decision, not an afterthought. The bounded queue with 503 rejection was a deliberate choice. Shedding load is preferable to unbounded queue growth that degrades latency for all requests.
+
+- Canary deployment via replica ratio is operationally simple but coarse. A 1:2 canary:stable ratio gives roughly 33% traffic split. A service mesh (Istio) would allow precise percentage-based routing without replica math.
+
+- The simulated Kafka stream simplifies real-world complexity. A live stream introduces out-of-order events, consumer lag under backpressure, and partition rebalancing - none of which the simulation exercises.
