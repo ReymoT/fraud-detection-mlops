@@ -27,11 +27,17 @@ The platform emphasizes **inference systems engineering** over model training, f
 ## Tech Stack
 
 **ML:** XGBoost, SHAP, MLflow, Evidently AI
+
 **Backend:** FastAPI, asyncio, PostgreSQL
+
 **Streaming:** Kafka
+
 **Orchestration:** Airflow, Celery, Redis
+
 **Infrastructure:** Docker, Kubernetes, GKE, Prometheus, Grafana
+
 **Testing & CI:** pytest, k6, GitHub Actions, Bandit, Trivy
+
 
 ## System Architecture
 
